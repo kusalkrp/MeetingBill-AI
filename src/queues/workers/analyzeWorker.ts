@@ -7,9 +7,10 @@ import { CostEngine } from '../../services/CostEngine';
 import { withTenantContext } from '../../middleware/tenantContext';
 import { notifyQueue } from '../index';
 import { logger } from '../../utils/logger';
+import { metrics } from '../../utils/metrics';
 
 export const analyzeWorker = new Worker(
-  'meeting:analyze',
+  'meeting_analyze',
   async (job) => {
     const { workspaceId, googleEventId, eventData } = job.data;
 
@@ -26,6 +27,10 @@ export const analyzeWorker = new Worker(
 
     // 3. Compute pure cost mathematicals
     const costResult = CostEngine.calculate(eventData.durationMinutes, attendees);
+    
+    // Telemetry Update
+    metrics.meetingsAnalyzedTotal.inc({ workspace_id: workspaceId, plan: 'measured' });
+    metrics.meetingCostUsd.observe(costResult.totalCost);
 
     // 4. Secure Insert under RLS
     const meeting = await withTenantContext(workspaceId, async (tx) => {

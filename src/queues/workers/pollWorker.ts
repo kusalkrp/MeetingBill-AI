@@ -3,11 +3,13 @@ import { redis } from '../../config/redis';
 import { logger } from '../../utils/logger';
 import { fetchRecentlyEndedMeetings } from '../../google/calendar';
 import { analyzeQueue } from '../index';
+import { metrics } from '../../utils/metrics';
 
 export const pollWorker = new Worker(
-  'meeting:poll',
+  'meeting_poll',
   async (job) => {
     const { workspaceId } = job.data;
+    metrics.pollRunsTotal.inc();
     
     // Attempt to fetch 5 min ago calendar events
     const events = await fetchRecentlyEndedMeetings(workspaceId);

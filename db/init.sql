@@ -153,11 +153,11 @@ CREATE POLICY tenant_isolation_usage ON usage_logs
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'meetingbill_app') THEN
-    CREATE ROLE meetingbill_app LOGIN PASSWORD 'strong_password_here';
+    CREATE ROLE meetingbill_app LOGIN PASSWORD 'your_db_password_here';
   END IF;
   
   IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'meetingbill_admin') THEN
-    CREATE ROLE meetingbill_admin LOGIN PASSWORD 'admin_password_here' BYPASSRLS;
+    CREATE ROLE meetingbill_admin LOGIN PASSWORD 'your_db_password_here' BYPASSRLS;
   END IF;
 END $$;
 

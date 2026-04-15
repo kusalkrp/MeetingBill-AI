@@ -5,7 +5,7 @@ export const slackWebhookLimiter = rateLimit({
   max: 500,             // Slack can send many events per minute
   keyGenerator: (req) => {
     const val = req.headers['x-slack-team-id'];
-    return (Array.isArray(val) ? val[0] : val) || req.ip || 'unknown';
+    return (Array.isArray(val) ? val[0] : val) || 'global_slack_fallback';
   }
 });
 
@@ -14,7 +14,7 @@ export const apiLimiter = rateLimit({
   max: 100,
   keyGenerator: (req) => {
     const val = req.params.workspaceId;
-    return (Array.isArray(val) ? val[0] : val) || req.ip || 'unknown';
+    return (Array.isArray(val) ? val[0] : val) || 'global_api_fallback';
   }
 });
 

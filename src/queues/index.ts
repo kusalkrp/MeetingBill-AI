@@ -2,7 +2,7 @@ import { Queue } from 'bullmq';
 import { redis } from '../config/redis';
 import { logger } from '../utils/logger';
 
-export const pollQueue = new Queue('meeting:poll', {
+export const pollQueue = new Queue('meeting_poll', {
   connection: redis,
   defaultJobOptions: {
     attempts: 3,
@@ -11,7 +11,7 @@ export const pollQueue = new Queue('meeting:poll', {
   }
 });
 
-export const analyzeQueue = new Queue('meeting:analyze', {
+export const analyzeQueue = new Queue('meeting_analyze', {
   connection: redis,
   defaultJobOptions: {
     attempts: 3,
@@ -20,7 +20,7 @@ export const analyzeQueue = new Queue('meeting:analyze', {
   }
 });
 
-export const notifyQueue = new Queue('notification:send', {
+export const notifyQueue = new Queue('meeting_notify', {
   connection: redis,
   defaultJobOptions: {
     attempts: 5,
@@ -29,7 +29,7 @@ export const notifyQueue = new Queue('notification:send', {
   }
 });
 
-export const digestQueue = new Queue('digest:weekly', {
+export const digestQueue = new Queue('meeting_digest', {
   connection: redis,
   defaultJobOptions: {
     attempts: 3,

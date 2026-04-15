@@ -6,6 +6,7 @@ import { env } from './config/env';
 import { logger } from './utils/logger';
 import { slackOAuthRouter } from './slack/oauth';
 import { googleAuthRouter } from './routes/auth';
+import { apiRouter } from './routes/api';
 import { slackWebhookLimiter } from './middleware/rateLimiter';
 import { TenantService } from './services/TenantService';
 import { prisma } from './db/prisma';
@@ -34,6 +35,7 @@ const receiver = new ExpressReceiver({
 });
 
 // Middleware attachments
+receiver.router.use(express.json()); // Required explicitly for the REST backend API routes
 receiver.router.use(helmet());
 
 // Apply Webhook Limiters (Phase 12 explicit setup early)
@@ -43,7 +45,6 @@ receiver.router.use('/slack/interactions', slackWebhookLimiter);
 // 3. Initialize Bolt App (HTTP Mode automatically handled by receiver)
 export const slackApp = new App({
   receiver,
-  // We mock authorize temporarily until Phase 11 where advanced multi-tenant mapping occurs
   authorize: async ({ teamId }) => {
     return { botToken: 'mock', botId: 'mock' };
   }
@@ -63,13 +64,33 @@ slackApp.event('app_uninstalled', async ({ body }) => {
   }
 });
 
-// 4. Mount OAuth routes
+// 4. Mount Custom Handlers
+import './slack/handlers/appHome';
+import './slack/interactions';
+import './slack/handlers/actions';
+import './slack/handlers/commands';
+
+// 5. Mount API Routes
 receiver.router.use(slackOAuthRouter);
 receiver.router.use(googleAuthRouter);
+receiver.router.use(apiRouter);
 
-// Health Endpoint
-receiver.router.get('/health', (req, res) => {
-  res.json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
+import { getMetricsRegistry } from './utils/metrics';
+
+// 6. Hardened Telemetry and Health Endpoints
+receiver.router.get('/health', async (req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ status: 'ok', db: 'verified_active', uptime: process.uptime(), timestamp: new Date().toISOString() });
+  } catch (err) {
+    res.status(503).json({ status: 'failure', target: 'db_connection_refused' });
+  }
+});
+
+receiver.router.get('/metrics', async (req, res) => {
+  res.set('Content-Type', 'text/plain');
+  const payload = await getMetricsRegistry();
+  res.send(payload);
 });
 
 (async () => {
