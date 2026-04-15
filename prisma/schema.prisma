@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Workspace {
+  id              String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  slackTeamId     String    @unique @map("slack_team_id") @db.VarChar(64)
+  slackTeamName   String    @map("slack_team_name") @db.VarChar(255)
+  slackTeamDomain String?   @map("slack_team_domain") @db.VarChar(255)
+  botToken        String    @map("bot_token") @db.Text
+  googleTokens    Json?     @map("google_tokens")
+  googleConnected Boolean?  @default(false) @map("google_connected")
+  plan            String?   @default("free") @db.VarChar(32)
+  credits         Int?      @default(20)
+  timezone        String?   @default("UTC") @db.VarChar(64)
+  onboardingState String?   @default("pending") @map("onboarding_state") @db.VarChar(32)
+  adminSlackId    String?   @map("admin_slack_id") @db.VarChar(64)
+  isActive        Boolean?  @default(true) @map("is_active")
+  createdAt       DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt       DateTime? @default(now()) @map("updated_at") @db.Timestamp(6)
+
+  salaryTiers   SalaryTier[]
+  members       WorkspaceMember[]
+  meetings      Meeting[]
+  weeklyDigests WeeklyDigest[]
+  usageLogs     UsageLog[]
+
+  @@map("workspaces")
+}
+
+model SalaryTier {
+  id           String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workspaceId  String    @map("workspace_id") @db.Uuid
+  roleName     String    @map("role_name") @db.VarChar(128)
+  annualSalary Int       @map("annual_salary")
+  hourlyRate   Decimal?  @default(dbgenerated("(annual_salary / 2080.0)")) @map("hourly_rate") @db.Decimal(10, 4)
+  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt    DateTime? @default(now()) @map("updated_at") @db.Timestamp(6)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, roleName])
+  @@index([workspaceId], map: "idx_salary_tiers_workspace")
+  @@map("salary_tiers")
+}
+
+model WorkspaceMember {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workspaceId String    @map("workspace_id") @db.Uuid
+  slackUserId String    @map("slack_user_id") @db.VarChar(64)
+  slackEmail  String?   @map("slack_email") @db.VarChar(255)
+  displayName String?   @map("display_name") @db.VarChar(255)
+  roleName    String?   @map("role_name") @db.VarChar(128)
+  hourlyRate  Decimal?  @map("hourly_rate") @db.Decimal(10, 4)
+  isActive    Boolean?  @default(true) @map("is_active")
+  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt   DateTime? @default(now()) @map("updated_at") @db.Timestamp(6)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, slackUserId])
+  @@index([workspaceId], map: "idx_workspace_members_workspace")
+  @@index([workspaceId, slackEmail], map: "idx_workspace_members_email")
+  @@map("workspace_members")
+}
+
+model Meeting {
+  id               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workspaceId      String    @map("workspace_id") @db.Uuid
+  googleEventId    String    @map("google_event_id") @db.VarChar(255)
+  title            String    @db.VarChar(500)
+  organizerSlackId String?   @map("organizer_slack_id") @db.VarChar(64)
+  organizerEmail   String?   @map("organizer_email") @db.VarChar(255)
+  startTime        DateTime  @map("start_time") @db.Timestamp(6)
+  endTime          DateTime  @map("end_time") @db.Timestamp(6)
+  durationMins     Int       @map("duration_mins")
+  attendeeCount    Int       @map("attendee_count")
+  estimatedCost    Decimal?  @map("estimated_cost") @db.Decimal(10, 2)
+  costBreakdown    Json?     @map("cost_breakdown")
+  outcomeLogged    String?   @map("outcome_logged") @db.Text
+  flaggedAsync     Boolean?  @default(false) @map("flagged_async")
+  dmSent           Boolean?  @default(false) @map("dm_sent")
+  analyzedAt       DateTime? @default(now()) @map("analyzed_at") @db.Timestamp(6)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, googleEventId])
+  @@index([workspaceId], map: "idx_meetings_workspace")
+  @@index([workspaceId, endTime(sort: Desc)], map: "idx_meetings_end_time")
+  @@index([workspaceId, organizerSlackId], map: "idx_meetings_organizer")
+  @@map("meetings")
+}
+
+model WeeklyDigest {
+  id              String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workspaceId     String    @map("workspace_id") @db.Uuid
+  weekStart       DateTime  @map("week_start") @db.Date
+  totalMeetings   Int?      @default(0) @map("total_meetings")
+  totalCost       Decimal?  @default(0) @map("total_cost") @db.Decimal(10, 2)
+  totalHours      Decimal?  @default(0) @map("total_hours") @db.Decimal(8, 2)
+  mostExpensive   Json?     @map("most_expensive")
+  asyncCandidates Json?     @map("async_candidates")
+  digestSent      Boolean?  @default(false) @map("digest_sent")
+  createdAt       DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, weekStart])
+  @@index([workspaceId, weekStart(sort: Desc)], map: "idx_weekly_digests_workspace")
+  @@map("weekly_digests")
+}
+
+model UsageLog {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workspaceId String    @map("workspace_id") @db.Uuid
+  eventType   String    @map("event_type") @db.VarChar(64)
+  creditsUsed Int?      @default(1) @map("credits_used")
+  metadata    Json?
+  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt(sort: Desc)], map: "idx_usage_logs_workspace")
+  @@map("usage_logs")
+}

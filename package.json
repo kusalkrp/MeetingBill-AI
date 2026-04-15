@@ -1,0 +1,48 @@
+{
+  "name": "meetingbill-ai",
+  "version": "1.0.0",
+  "description": "Production-Grade Multi-Tenant System Design",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/app.js",
+    "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
+    "worker": "node dist/worker.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kusalkrp/MeetingBill-AI.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/kusalkrp/MeetingBill-AI/issues"
+  },
+  "homepage": "https://github.com/kusalkrp/MeetingBill-AI#readme",
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "@sentry/node": "^10.48.0",
+    "@slack/bolt": "^4.7.0",
+    "bullmq": "^5.74.1",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.3.2",
+    "googleapis": "^171.4.0",
+    "helmet": "^8.1.0",
+    "ioredis": "^5.10.1",
+    "pino": "^10.3.1",
+    "prom-client": "^15.1.3",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.6.0",
+    "pino-pretty": "^13.1.3",
+    "prisma": "^5.22.0",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^6.0.2"
+  }
+}
